@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <style>
+        html {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            height: 100vh;
+        }
+
+        html body {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 100%;
+            width: 45rem;
+            padding: 1rem;
+            font-family: "Permanent Marker", cursive;
+        }
+
+        html body .break {
+            width: 100%;
+        }
+
+        html body .wincondition .letter {
+            display: none;
+        }
+
+        html body .hangman .lose {
+            display: none;
+        }
+
+        html body .hangman .lose div {
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        html body .hangman .lose div .bottom {
+            font-size: 5vmin;
+        }
+
+        html body .hangman .lose div .bottom {
+            color: #D8334A;
+            /* or any color you prefer */
+        }
+
+        html body .win,
+        html body .lose {
+            display: none;
+            place-items: center;
+            z-index: 1;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(19, 19, 19, 0.300);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 10vmin;
+        }
+
+        html body .win.active,
+        html body .lose.active {
+            display: grid;
+        }
+
+        html body .win.win,
+        html body .lose.win {
+            color: #2ECC71;
+        }
+
+        html body .win.lose,
+        html body .lose.lose {
+            color: #D8334A;
+        }
+
+        html body input {
+            outline: none;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid black;
+            color: black;
+            text-align: center;
+            font-size: 2rem;
+            margin: 0.2rem;
+            width: 3rem;
+            padding: 0;
+            pointer-events: none;
+        }
+
+        html body input.correct {
+            color: #2ECC71;
+        }
+
+        html body svg {
+            width: 30rem;
+        }
+
+        html body svg * {
+            fill: none;
+            stroke: #EEEEEE;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-miterlimit: 10;
+            transition: 0.25s;
+        }
+
+        html body .hint {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .keyboard {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .key {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            background: #F5F7FA;
+            border: none;
+            border-radius: 5px;
+            transition: 0.2s;
+        }
+
+        .key.used {
+            opacity: 0.5;
+            background: #D8334A;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // JavaScript Code for Hangman Game
+        const words = ["BROWSER", "HANGMAN", "JAVASCRIPT", "PYTHON", "HTML", "CSS", "CODING", "DEBUG", "PROGRAM", "FUNCTION"];
+        const selectedWord = words[Math.floor(Math.random() * words.length)];
+        let wrongGuesses = 0;
+        const maxWrongGuesses = 10;
+        let guessedLetters = new Set();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const hintDiv = document.querySelector('.hint');
+            const keyboard = document.createElement('div');
+            keyboard.className = 'keyboard';
+
+            // Create letter slots
+            for (const letter of selectedWord) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.disabled = true;
+                input.className = 'letter';
+                hintDiv.appendChild(input);
+            }
+
+            // Create keyboard
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+                const button = document.createElement('button');
+                button.className = 'key';
+                button.textContent = letter;
+                button.onclick = (e) => handleGuess(e.target.textContent); // Pass the clicked letter directly
+                keyboard.appendChild(button);
+            });
+            document.body.appendChild(keyboard);
+        });
+
+        function handleGuess(letter) {
+            console.log(letter);
+            let btn = document.querySelector(`.key:not(.used)`);
+            if (btn && btn.textContent === letter) {
+                btn.classList.add('used');
+            }
+            // Check if letter is already guessed
+            if (guessedLetters.has(letter)) return;
+            guessedLetters.add(letter);
+
+            // Mark the key as used
+            const button = Array.from(document.querySelectorAll('.key')).find(el => el.textContent === letter);
+
+            if (button) {
+
+                button.classList.add('used');
+                button.style.backgroundColor = selectedWord.includes(letter) ? '#2ECC71' : '#D8334A';
+            }
+
+            if (selectedWord.includes(letter)) {
+                // Show correct letters
+                const letters = document.querySelectorAll('.letter');
+                selectedWord.split('').forEach((char, index) => {
+                    if (char === letter) {
+                        letters[index].value = letter;
+                        letters[index].classList.add('correct');
+                    }
+                });
+
+                // Check win
+                const allLettersGuessed = [...selectedWord].every(l => guessedLetters.has(l));
+                if (allLettersGuessed) {
+                    document.querySelector('.win').classList.add('active');
+                }
+            } else {
+                wrongGuesses++;
+
+                // Show hangman parts
+                for (let i = 1; i <= wrongGuesses; i++) {
+                    const stages = document.querySelectorAll(`.stage${i}`);
+                    stages.forEach(stage => {
+                        stage.style.setProperty('stroke', '#D8334A', 'important');
+                    });
+                }
+
+                if (wrongGuesses >= maxWrongGuesses) {
+                    setTimeout(() => {
+                        document.querySelector('.lose').classList.add('active');
+                    }, 500);
+                }
+            }
+        }
+
+    </script>
+
+    <div class="break"></div>
+    <svg class="hangman" viewBox="0 0 96 96">
+        <line class="stage10" x1="62" y1="70" x2="56" y2="56"></line>
+        <line class="stage9" x1="50" y1="70" x2="56" y2="56"></line>
+        <line class="stage8" x1="68" y1="46" x2="56" y2="40"></line>
+        <line class="stage7" x1="44" y1="46" x2="56" y2="40"></line>
+        <line class="stage6" x1="56" y1="40" x2="56" y2="56"></line>
+        <circle class="stage5" cx="56" cy="34" r="6"></circle>
+        <line class="stage4" x1="56" y1="16" x2="56" y2="28"></line>
+        <line class="stage3" x1="24" y1="24" x2="32" y2="16"></line>
+        <line class="stage3" x1="21" y1="16" x2="60" y2="16"></line>
+        <line class="stage2" x1="24" y1="80" x2="24" y2="16"></line>
+        <line class="stage1" x1="16" y1="80" x2="32" y2="80"></line>
+    </svg>
+    <div class="break"></div>
+    <div class="hint"></div>
+    <div class="hangman">
+        <div class="lose stage10">
+            <div>
+                <div class="top">Commiserations</div>
+                <div class="bottom"></div>
+            </div>
+        </div>
+    </div>
+    <div class="wincondition">
+        <div class="win">Congratulations</div>
+    </div>
+</body>
+
+</html>
